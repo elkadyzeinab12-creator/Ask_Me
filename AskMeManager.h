@@ -25,7 +25,7 @@ private:
     void PrintQuestionsToMe();//done
     void Feed();
 
-    void PrintQuestionFromMe();//done
+    void PrintQuestionsFromMe();//done
     void Answer_question();
     void Delete_question();
     void Ask_question();

@@ -44,13 +44,20 @@ void AskMeManager::Run() {
             int sel = getIntInput("Enter Number in Range (1-8): ");
 
             switch (sel) {
-                case 1: PrintQuestionsToMe();      break;
-                case 2: PrintQuestionFromMe();     break;
-                case 3: Answer_question();         break;
-                // case 4: Delete_question();      break;
-                // case 5: Ask_question();         break;
-                case 6: List_system_users();    break;
-                // case 7: Feed();                 break;
+                case 1: PrintQuestionsToMe();
+                    break;
+                case 2: PrintQuestionsFromMe();
+                    break;
+                case 3: Answer_question();
+                    break;
+                case 4: Delete_question();
+                    break;
+                case 5: Ask_question();
+                    break;
+                case 6: List_system_users();
+                    break;
+                case 7: Feed();
+                    break;
                 case 8:
                     current_user = nullptr;
                     cout << YELLOW << "Logged out successfully.\n" << RESET;
@@ -81,7 +88,7 @@ void AskMeManager::ShowUserMenu() {
             "        8: Logout\n"; //done
 }
 
-//___________________________________________________Login___________________________________________________________________
+//______________________________________________Login___________________________________________________________________
 void AskMeManager::Login() {
     cout << "\n------------------------- Login -------------------------\n";
     string username = getStringInput("Enter username:"),
@@ -98,6 +105,7 @@ void AskMeManager::Login() {
     current_user = nullptr;
 }
 
+//_____________________________________________Sign Up____________________________________
 void AskMeManager::SignUp() {
     cout << "\n                    Sign Up \n";
     string name = getStringInput("Enter name : "),
@@ -113,7 +121,7 @@ void AskMeManager::SignUp() {
     cout << GREEN << "Account created successfully! Please login.\n" << RESET;
 }
 
-//Read
+//__________________________________________READ DATA____________________________________
 void AskMeManager::LoadData() {
     ifstream users_file("users.txt");
     if (users_file.is_open()) {
@@ -140,6 +148,7 @@ void AskMeManager::LoadData() {
     }
 }
 
+//__________________________________________SAVE UPDATED DATA____________________________________
 void AskMeManager::SaveData() {
     fstream saveQData;
     saveQData.open("questions.txt", ios::out); //write
@@ -168,6 +177,7 @@ void AskMeManager::SaveData() {
     saveUdata.close();
 }
 
+//__________________________________________Print Questions To Me____________________________________
 void AskMeManager::PrintQuestionsToMe() {
     bool findQ = false;
 
@@ -182,6 +192,7 @@ void AskMeManager::PrintQuestionsToMe() {
             cout << "Question: " << q.GetQuestionText() << '\n';
             if (!q.GetAnswerText().empty())
                 cout << "\t Answer: " << q.GetAnswerText() << '\n';
+            else cout << YELLOW"\t Not Answered Yet!\n"<<RESET;
             cout << '\n';
 
 
@@ -196,6 +207,7 @@ void AskMeManager::PrintQuestionsToMe() {
                     if (!sub_q.GetAnswerText().empty()) {
                         cout << "\tThread:\t\tAnswer: " << sub_q.GetAnswerText() << "\n";
                     }
+                    else cout << YELLOW"\t Not Answered Yet!\n"<<RESET;
                 }
             }
             cout << "\n--------------------------------------------------\n";
@@ -206,7 +218,8 @@ void AskMeManager::PrintQuestionsToMe() {
         cout << "No questions for you yet.\n";
 }
 
-void AskMeManager::PrintQuestionFromMe() {
+//__________________________________________Print Questions From Me____________________________________
+void AskMeManager::PrintQuestionsFromMe() {
     bool findQ = false;
     for (auto &q: questions_list) {
         if (q.GetFromUserId() == current_user->get_id()) {
@@ -220,13 +233,14 @@ void AskMeManager::PrintQuestionFromMe() {
             if (q.GetAnswerText().empty())
                 cout << "\t Not Answered Yet ";
 
-            cout << "\t Answer: " << q.GetAnswerText() << "\n";
+            else cout << "\t Answer: " << q.GetAnswerText() << "\n";
         }
     }
     if (!findQ)
         cout << "You haven't send any question yet.\n";
 }
 
+//__________________________________________Answer Question____________________________________
 void AskMeManager::Answer_question() {
     int press = 0;
     press = getIntInput("Enter Question id or press -1 to cancel :");
@@ -234,6 +248,10 @@ void AskMeManager::Answer_question() {
         bool findQ = false;
         for (auto &q: questions_list) {
             if (q.GetQuestionId() == press) {
+                if (q.GetToUserId() != current_user->get_id()) {
+                    cout << red << "Error: This question is not addressed to you! You cannot answer it.\n" << RESET;
+                    return;
+                }
                 findQ = true;
                 cout << "Question Id (" << q.GetQuestionId() << ") ";
                 if (!q.IsAnonymous())
@@ -248,24 +266,132 @@ void AskMeManager::Answer_question() {
         if (!findQ)
             cout << "No question with this id.\n";
         if (findQ) {
-            cout<<GREEN"Answer is added successfully!\n\n"<<RESET;
+            cout << GREEN"Answer is added successfully!\n\n" << RESET;
             break;
         }
     }
+    SaveData();
 }
 
+//__________________________________________Delete question____________________________________
 void AskMeManager::Delete_question() {
+    int q_id = getIntInput("Enter Question id to delete, or -1 to cancel: ");
+    if (q_id == -1) return;
 
+    bool findQ = false;
+    int parent_id_to_check = -1;
+
+    for (auto it = questions_list.begin(); it != questions_list.end(); ++it) {
+        if (it->GetQuestionId() == q_id) {
+            if (it->GetToUserId() != current_user->get_id() && it->GetFromUserId() != current_user->get_id()) {
+                cout << red << "Error: You don't have permission to delete this question!\n" << RESET;
+                return;
+            }
+            findQ = true;
+            parent_id_to_check = it->GetParentId();
+            questions_list.erase(it);
+            break;
+        }
+    }
+
+    if (!findQ) {
+        cout << red << "Question id not found.\n" << RESET;
+        return;
+    }
+
+    if (parent_id_to_check == -1) {
+        for (auto it = questions_list.begin(); it != questions_list.end();) {
+            if (it->GetParentId() == q_id) {
+                it = questions_list.erase(it); // مسح التابع
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    cout << GREEN << "Question deleted successfully.\n" << RESET;
+    SaveData();
 }
 
+//__________________________________________List system users____________________________________
 void AskMeManager::List_system_users() {
     cout << GREEN "---------------------------SYSTEM USERS--------------------------------\n";
-    for (auto &u:users_list) {
-        cout << YELLOW"User Id: "<< u.get_id()<<BB"\t Name: "<<u.get_name()<<'\n';
+    for (auto &u: users_list) {
+        cout << YELLOW"User Id: " << u.get_id() << BB"\t Name: " << u.get_name() << '\n';
     }
-    cout << GREEN "-----------------------------------------------------------------------\n"<<RESET;
+    cout << GREEN "-----------------------------------------------------------------------\n" << RESET;
 }
 
+//__________________________________________Ask Question____________________________________
 void AskMeManager::Ask_question() {
+    int press = getIntInput("Enter To User id or press -1 to cancel : ");
+    if (press != -1) {
+        bool findU = false;
+        for (auto &u: users_list) {
+            if (u.get_id()== press) {
+                findU = true;
+                if (!u.get_anonymous())
+                    cout<<PURPLE"Note: Anonymous Questions Aren't Allowed For This User\n"<<RESET;
+                int sel= getIntInput("For Thread Question Enter Question ID, Or Prees -1 For New Question: ");
+                if (sel == -1) {
+                    question new_Q;
+                    new_Q.set_Q_id(questions_list.back().GetQuestionId()+1);
+                    new_Q.set_from_user_id(current_user->get_id());
+                    new_Q.set_P_id(-1);
+                    new_Q.set_to_user_id(u.get_id());
+                    new_Q.set_Anonymous(u.get_anonymous());
+                    new_Q.set_Qtxt(getStringInput("Enter Question Text: "));
+                    questions_list.push_back(new_Q);
+                }
+                else {
+                    bool findQ= false;
+                    for (auto &q : questions_list) {
+                        if (q.GetQuestionId()==sel) {
+                            findQ = true;
+                            question new_Q;
+                            new_Q.set_Q_id(questions_list.back().GetQuestionId()+1);
+                            new_Q.set_from_user_id(current_user->get_id());
+                            new_Q.set_P_id(sel);
+                            new_Q.set_to_user_id(u.get_id());
+                            new_Q.set_Anonymous(u.get_anonymous());
+                            new_Q.set_Qtxt(getStringInput("Enter Question Text: "));
+                            questions_list.push_back(new_Q);
+                            break;
+                        }
+                    }
+                    if (!findQ) {
+                        cout << red << "Question id is not found.\n" << RESET;
+                        return;
+                    }
+                }
 
+            }
+        }
+        if (!findU) {
+            cout << red << "Question id is not found.\n" << RESET;
+            return;
+        }
+            cout<<GREEN<<"Question Added Successfully\n"<<
+                "_____________________________________________________________________\n"<<RESET;
+            SaveData();
+    }
+}
+
+//__________________________________________List users Feed____________________________________
+void AskMeManager::Feed() {
+    cout<<cyan"_______________________________users feed__________________________________\n";
+    for (auto &q: questions_list) {
+        if (q.GetAnswerText().empty())
+            continue;
+        cout<<"Question Id: "<<q.GetQuestionId()<<"\n";
+        if (q.IsAnonymous())
+            cout << "from anonymous user\t";
+        else
+            cout << "from user Id (" << q.GetFromUserId() << ") \t";
+        cout<<"To User ID ("<<q.GetToUserId()<<")\n";
+
+        cout <<LIGHT_YELLOW "Question: " << q.GetQuestionText() << '\t';
+        cout<<LIGHT_PURPLE"Answer: "<<q.GetAnswerText() << '\n';
+    }
+    cout<<RESET"__________________________________________________________________________\n";
 }

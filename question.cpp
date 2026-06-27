@@ -23,6 +23,28 @@ question::question(int q_id, int p_id, int from_id, int to_id, bool is_anon, std
     this ->PQid = p_id;
 };
 
+void question::set_P_id(int p_id) {
+    this -> Q_id = p_id;
+}
+void question::set_from_user_id(int from_user_id) {
+    this -> from_user_id = from_user_id;
+}
+void question::set_to_user_id(int to_user_id) {
+    this -> to_user_id = to_user_id;
+}
+void question::set_Anonymous(bool Anonymous) {
+    this->isAnonymous = Anonymous;
+}
+void question::set_Qtxt(std::string qtxt) {
+    this -> Q_txt = qtxt;
+}
+void question::set_Q_id(int q_id) {
+    this -> Q_id = q_id;
+}
+void question :: SetAnswerText(const std::string& ans) {
+    this->Q_txt = ans;
+}
+
 int question:: GetQuestionId() const {
     return this->Q_id;
 }
@@ -43,9 +65,6 @@ std::string question:: GetQuestionText() const {
 }
 std::string question:: GetAnswerText() const {
     return this->AnsTxt;
-}
-void question :: SetAnswerText(const std::string& ans) {
-    this->Q_txt = ans;
 }
 
 void question::ReadQ(const std::string& line) {
